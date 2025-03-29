@@ -43,21 +43,6 @@ A React Native mobile application that provides weather forecasts and city searc
    or
    yarn start
 
-## Project Structure
-├── src/
-│ ├── components/ # Reusable UI components
-│ ├── views/ # Screen components
-│ ├── services/ # API and external services
-│ ├── utils/ # Helper functions
-│ ├── models/ # TypeScript interfaces/types
-│ ├── viewmodels/ # MobX state management
-│ └── hooks/ # Custom React hooks
-├── assets/ # Images and static files
-├── android/ # Android native code
-├── ios/ # iOS native code
-└── App.tsx # Root component
-
-
 ## Features in Detail
 
 ### City Search
