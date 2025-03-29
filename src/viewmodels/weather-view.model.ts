@@ -1,31 +1,23 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import { fetchWeather } from "../services/weatherService";
-import { saveWeatherData, getWeatherData, getSearchedCities } from "../utils/storage";
 import { WeatherData } from "../models/weather";
+import { fetchWeather } from "../services/weatherService";
+import { saveWeatherData, getWeatherData, hasCachedWeatherData } from "../utils/storage";
 import NetInfo from '@react-native-community/netinfo';
-import { Alert } from 'react-native';
 
 export class WeatherViewModel {
     weatherData: WeatherData | null = null;
     error: string | null = null;
     loading: boolean = false;
     refreshing: boolean = false;
-    searchedCities: string[] = [];
     isOffline: boolean = false;
     currentCity: string = '';
 
     constructor() {
         makeAutoObservable(this);
         this.initializeNetworkListener();
-        this.loadSearchedCities();
     }
 
-    private async initializeNetworkListener() {
-        const netInfo = await NetInfo.fetch();
-        runInAction(() => {
-            this.isOffline = !netInfo.isConnected;
-        });
-
+    private initializeNetworkListener() {
         NetInfo.addEventListener(state => {
             runInAction(() => {
                 this.isOffline = !state.isConnected;
@@ -33,47 +25,31 @@ export class WeatherViewModel {
         });
     }
 
-    async loadSearchedCities() {
-        const cities = await getSearchedCities();
-        runInAction(() => {
-            this.searchedCities = cities;
-        });
+    async hasCachedData(city: string): Promise<boolean> {
+        return await hasCachedWeatherData(city);
     }
 
     async fetchCityWeather(city: string) {
         this.setLoading(true);
-        this.currentCity = city;
-        this.weatherData = null;
         this.error = null;
+        this.currentCity = city;
 
         try {
+            let data;
             if (this.isOffline) {
-                const cachedData = await getWeatherData(city);
-                if (cachedData) {
-                    runInAction(() => {
-                        this.weatherData = this.transformWeatherData(cachedData);
-                    });
-                } else {
-                    console.log("Unable to fetch this data at the moment");
-                }
-                return;
-            }
-
-            // Online mode
-            const data = await fetchWeather(city);
-            if (!data) {
-                throw new Error("Unable to find the city");
+                data = await getWeatherData(city);
+                if (!data) throw new Error("No cached data available");
+            } else {
+                data = await fetchWeather(city);
+                await saveWeatherData(city, data);
             }
 
             runInAction(() => {
-                this.weatherData = this.transformWeatherData(data);
+                this.weatherData = data;
             });
-            await saveWeatherData(city, data);
-
-        } catch (err) {
+        } catch (error) {
             runInAction(() => {
-                this.error = err instanceof Error ? err.message : "Failed to load weather data";
-                Alert.alert("Error", this.error);
+                this.error = error instanceof Error ? error.message : "Failed to load weather data";
             });
         } finally {
             runInAction(() => {
@@ -81,12 +57,6 @@ export class WeatherViewModel {
                 this.refreshing = false;
             });
         }
-    }
-
-    clearWeatherData() {
-        this.weatherData = null;
-        this.error = null;
-        this.currentCity = '';
     }
 
     setLoading(value: boolean) {
@@ -97,15 +67,9 @@ export class WeatherViewModel {
         this.refreshing = value;
     }
 
-    private transformWeatherData(data: any): WeatherData {
-        return {
-            temperature: data.currentConditions.temp,
-            humidity: data.currentConditions.humidity,
-            windSpeed: data.currentConditions.windspeed,
-            condition: data.currentConditions.conditions,
-            location: data.resolvedAddress,
-            lastUpdated: new Date().toISOString()
-        };
+    clearWeatherData() {
+        this.weatherData = null;
+        this.error = null;
     }
 }
 

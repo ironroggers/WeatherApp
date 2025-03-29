@@ -7,11 +7,12 @@ const CACHE_EXPIRY_HOURS = 24;
 // Save weather data to AsyncStorage
 export async function saveWeatherData(city: string, data: any): Promise<void> {
     try {
-        await AsyncStorage.setItem(`weather_${city}`, JSON.stringify({
-            ...data,
+        const normalizedCity = city.toLowerCase().trim();
+        await AsyncStorage.setItem(`weather_${normalizedCity}`, JSON.stringify({
+            data,
             cachedAt: new Date().toISOString()
         }));
-        await addToSearchedCities(city);
+        await addToSearchedCities(normalizedCity);
     } catch (error) {
         console.error("Error saving data to AsyncStorage:", error);
         Alert.alert("Storage Error", "Failed to save weather data");
@@ -21,20 +22,19 @@ export async function saveWeatherData(city: string, data: any): Promise<void> {
 // Retrieve weather data from AsyncStorage
 export async function getWeatherData(city: string): Promise<any | null> {
     try {
-        const data = await AsyncStorage.getItem(`weather_${city}`);
+        const normalizedCity = city.toLowerCase().trim();
+        const data = await AsyncStorage.getItem(`weather_${normalizedCity}`);
         if (!data) return null;
 
-        const parsedData = JSON.parse(data);
-        const cachedAt = new Date(parsedData.cachedAt);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - cachedAt.getTime()) / (1000 * 60 * 60);
+        const { data: weatherData, cachedAt } = JSON.parse(data);
+        const hoursDiff = (new Date().getTime() - new Date(cachedAt).getTime()) / (1000 * 60 * 60);
 
         if (hoursDiff > CACHE_EXPIRY_HOURS) {
-            await AsyncStorage.removeItem(`weather_${city}`);
+            await AsyncStorage.removeItem(`weather_${normalizedCity}`);
             return null;
         }
 
-        return parsedData;
+        return weatherData;
     } catch (error) {
         console.error("Error retrieving data from AsyncStorage:", error);
         return null;
@@ -46,19 +46,23 @@ export async function getSearchedCities(): Promise<string[]> {
         const cities = await AsyncStorage.getItem(SEARCHED_CITIES_KEY);
         return cities ? JSON.parse(cities) : [];
     } catch (error) {
-        console.error("Error retrieving searched cities:", error);
+        console.error("Error getting searched cities:", error);
         return [];
     }
 }
 
-async function addToSearchedCities(city: string): Promise<void> {
+export async function addToSearchedCities(city: string): Promise<void> {
     try {
-        const cities = await getSearchedCities();
-        if (!cities.includes(city)) {
-            cities.push(city);
-            await AsyncStorage.setItem(SEARCHED_CITIES_KEY, JSON.stringify(cities));
-        }
+        const normalizedCity = city.toLowerCase().trim();
+        const existingCities = await getSearchedCities();
+        const updatedCities = [normalizedCity, ...existingCities.filter(c => c !== normalizedCity)].slice(0, 5);
+        await AsyncStorage.setItem(SEARCHED_CITIES_KEY, JSON.stringify(updatedCities));
     } catch (error) {
-        console.error("Error adding to searched cities:", error);
+        console.error("Error updating searched cities:", error);
     }
+}
+
+export async function hasCachedWeatherData(city: string): Promise<boolean> {
+    const data = await getWeatherData(city);
+    return data !== null;
 }

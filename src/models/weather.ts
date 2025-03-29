@@ -1,8 +1,21 @@
-export interface WeatherData {
-    temperature: number;
+export interface WeatherConditions {
+    temp: number;
+    conditions: string;
     humidity: number;
-    windSpeed: number;
-    condition: string;
-    location: string;
+    windspeed: number;
+    visibility: number;
+    uvindex: number;
+}
+
+export interface ForecastDay {
+    datetime: string;
+    temp: number;
+    conditions: string;
+}
+
+export interface WeatherData {
+    currentConditions: WeatherConditions;
+    days: ForecastDay[];
+    resolvedAddress: string;
     lastUpdated: string;
 }
