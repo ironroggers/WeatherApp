@@ -3,4 +3,6 @@ export interface WeatherData {
     humidity: number;
     windSpeed: number;
     condition: string;
+    location: string;
+    lastUpdated: string;
 }

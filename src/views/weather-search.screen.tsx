@@ -1,40 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
-import { WEATHER_API_KEY } from '../utils/api-keys';
+import { observer } from 'mobx-react-lite';
+import { weatherViewModel } from '../viewmodels/weather-view.model';
 
-const WeatherScreen = ({ route }: any) => {
+const WeatherScreen = observer(({ route, navigation }: any) => {
     const { city } = route.params;
-    const [weatherData, setWeatherData] = useState<any>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [refreshing, setRefreshing] = useState<boolean>(false);
-
-    const fetchWeather = async () => {
-        try {
-            const response = await fetch(
-                `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${city}?key=${WEATHER_API_KEY}`
-            );
-            const data = await response.json();
-            setWeatherData(data);
-        } catch (error) {
-            console.error('Error fetching weather data:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
+    const viewModel = weatherViewModel;
 
     useEffect(() => {
-        fetchWeather();
+        if (viewModel.isOffline) {
+            Alert.alert(
+                "Offline Mode",
+                "You are currently offline. Showing cached data if available."
+            );
+        }
+        viewModel.fetchCityWeather(city);
+
+        return () => {
+            viewModel.clearWeatherData();
+        };
     }, [city]);
 
     const onRefresh = React.useCallback(() => {
-        setRefreshing(true);
-        fetchWeather();
+        viewModel.setRefreshing(true);
+        viewModel.fetchCityWeather(city);
     }, [city]);
 
-    if (loading) {
+    if (viewModel.loading) {
         return (
             <LinearGradient 
                 colors={['#4c669f', '#3b5998', '#192f6a']} 
@@ -55,57 +49,52 @@ const WeatherScreen = ({ route }: any) => {
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={
                     <RefreshControl
-                        refreshing={refreshing}
+                        refreshing={viewModel.refreshing}
                         onRefresh={onRefresh}
                         tintColor="#ffffff"
-                        titleColor="#ffffff"
                         colors={['#ffffff']}
                         progressBackgroundColor="#4c669f"
                     />
                 }
             >
-                {weatherData ? (
+                {viewModel.weatherData ? (
                     <View style={styles.content}>
-                        <Text style={styles.location}>{weatherData.resolvedAddress}</Text>
+                        <Text style={styles.location}>{viewModel.weatherData.location}</Text>
                         
                         <View style={styles.mainWeather}>
                             <Text style={styles.temperature}>
-                                {Math.round(weatherData.currentConditions.temp)}°C
+                                {Math.round(viewModel.weatherData.temperature)}°C
                             </Text>
                             <Text style={styles.conditions}>
-                                {weatherData.currentConditions.conditions}
+                                {viewModel.weatherData.condition}
                             </Text>
                         </View>
 
                         <View style={styles.detailsContainer}>
                             <View style={styles.detailItem}>
                                 <Feather name="droplet" size={24} color="#fff" />
-                                <Text style={styles.detailText}>
-                                    Humidity
-                                </Text>
+                                <Text style={styles.detailText}>Humidity</Text>
                                 <Text style={styles.detailValue}>
-                                    {weatherData.currentConditions.humidity}%
+                                    {viewModel.weatherData.humidity}%
                                 </Text>
                             </View>
 
                             <View style={styles.detailItem}>
                                 <Feather name="wind" size={24} color="#fff" />
-                                <Text style={styles.detailText}>
-                                    Wind Speed
-                                </Text>
+                                <Text style={styles.detailText}>Wind Speed</Text>
                                 <Text style={styles.detailValue}>
-                                    {weatherData.currentConditions.windspeed} km/h
+                                    {viewModel.weatherData.windSpeed} km/h
                                 </Text>
                             </View>
                         </View>
                     </View>
                 ) : (
-                    <Text style={styles.errorText}>No data found for "{city}"</Text>
+                    <Text style={styles.errorText}>{viewModel.error || `No data found for "${city}"`}</Text>
                 )}
             </ScrollView>
         </LinearGradient>
     );
-};
+});
 
 const styles = StyleSheet.create({
     container: {

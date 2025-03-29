@@ -4,11 +4,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaView, StatusBar } from 'react-native';
 
-// Import Screens
 import HomeScreen from './src/views/home.screen'
 import WeatherScreen from './src/views/weather-search.screen';
 
-// Create Stack Navigator
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -26,9 +24,8 @@ const App = () => {
                   headerTitleStyle: {
                       fontWeight: 'bold',
                   },
-                  headerBackTitle: 'Back',  // iOS back button text
-                  // headerBackTitleVisible: false,  // Hide the back title
-                  headerTitle: '',  // Remove the header title
+                  headerBackTitle: 'Back',
+                  headerTitle: '',
               }}
           >
               <Stack.Screen
