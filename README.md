@@ -81,3 +81,7 @@ This project is licensed under the 0BSD License - see the LICENSE file for detai
 - Weather data provided by [Weather API Provider]
 - Icons by Feather Icons
 - Built with Expo and React Native
+
+# Demo 
+## Install the App -> 
+https://expo.dev/artifacts/eas/3ZvninK4Yd8J48Gs12D3X4.apk
