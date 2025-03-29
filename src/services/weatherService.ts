@@ -1,9 +1,10 @@
-import {WEATHER_API_KEY} from "../utils/api-keys";
+import {CONFIG} from "../config/env";
+
 
 export async function fetchWeather(city: string): Promise<any> {
     try {
         const response = await fetch(
-            `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${city}?unitGroup=metric&key=${WEATHER_API_KEY}`
+            `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${city}?unitGroup=metric&key=${CONFIG.WEATHER_API_KEY}`
         );
         
         if (!response.ok) {
